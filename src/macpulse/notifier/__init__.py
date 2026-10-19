@@ -10,13 +10,12 @@ from __future__ import annotations
 import plistlib
 import shutil
 import subprocess
-import sys
 import tempfile
 import time
 from pathlib import Path
 
 from .. import __version__
-from ..storage import data_dir
+from ..storage import data_dir, stable_python
 
 BUNDLE_ID = "io.github.macpulse.notifier"
 NAME = "MacpulseNotifier"
@@ -127,4 +126,4 @@ def send(title: str, message: str, on_click: list[str] | None = None, timeout: f
 
 
 def report_command() -> list[str]:
-    return [sys.executable, "-m", "macpulse", "report"]
+    return [stable_python(), "-m", "macpulse", "report"]

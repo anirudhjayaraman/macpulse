@@ -5,7 +5,9 @@ from __future__ import annotations
 import csv
 import json
 import os
+import re
 import sqlite3
+import sys
 import time
 from datetime import datetime
 from pathlib import Path
@@ -41,6 +43,21 @@ def data_dir() -> Path:
     path = Path(override) if override else Path.home() / "Library" / "Application Support" / "macpulse"
     path.mkdir(parents=True, exist_ok=True)
     return path
+
+
+def stable_python() -> str:
+    """The Python to put in launchd jobs and click actions.
+
+    Homebrew installs into a versioned folder (Cellar/macpulse/0.1.0/...) that is
+    deleted on upgrade, so use its version-independent opt/ link instead.
+    """
+    exe = sys.executable
+    match = re.match(r"^(.*)/Cellar/([^/]+)/[^/]+/(.*)$", exe)
+    if match:
+        opt = f"{match.group(1)}/opt/{match.group(2)}/{match.group(3)}"
+        if os.path.exists(opt):
+            return opt
+    return exe
 
 
 def connect(path: Path | None = None) -> sqlite3.Connection:

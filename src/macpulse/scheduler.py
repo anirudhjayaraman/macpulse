@@ -9,11 +9,10 @@ from __future__ import annotations
 import os
 import plistlib
 import subprocess
-import sys
 from pathlib import Path
 
 from . import notifier
-from .storage import data_dir
+from .storage import data_dir, stable_python
 
 LABEL = "io.github.macpulse.record"
 
@@ -27,7 +26,7 @@ def _domain() -> str:
 
 
 def build_plist(every_minutes: int, notify: bool = True) -> dict:
-    args = [sys.executable, "-m", "macpulse", "record", "--quiet"]
+    args = [stable_python(), "-m", "macpulse", "record", "--quiet"]
     if notify:
         args.append("--notify")
     if notifier.is_installed():

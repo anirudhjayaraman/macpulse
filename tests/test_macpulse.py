@@ -188,3 +188,15 @@ def test_setup_works_without_command_line_tools(monkeypatch, capsys):
     out = capsys.readouterr().out
     assert installed == [(15, True)]
     assert "Skipped clickable alerts" in out and '"python3"' in out
+
+
+def test_stable_python_uses_homebrew_opt_link(tmp_path, monkeypatch):
+    cellar = tmp_path / "Cellar/macpulse/0.1.0/libexec/bin/python"
+    opt = tmp_path / "opt/macpulse/libexec/bin/python"
+    for p in (cellar, opt):
+        p.parent.mkdir(parents=True)
+        p.touch()
+    monkeypatch.setattr(storage.sys, "executable", str(cellar))
+    assert storage.stable_python() == str(opt)
+    monkeypatch.setattr(storage.sys, "executable", "/Users/me/.local/share/uv/tools/macpulse/bin/python3")
+    assert storage.stable_python() == "/Users/me/.local/share/uv/tools/macpulse/bin/python3"
