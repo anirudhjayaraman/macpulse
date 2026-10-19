@@ -89,21 +89,26 @@ Each finding comes with plain-English advice, and everything rolls up into a 0â€
 
 ## Install
 
-Two commands in Terminal:
-
 ```bash
-uv tool install git+https://github.com/anirudhjayaraman/macpulse
+brew install anirudhjayaraman/tap/macpulse
 macpulse setup
 ```
 
-`macpulse setup` does the rest: it starts background recording, builds the small alert app, and
-sends a test alert (click **Allow** if macOS asks). Then just run `macpulse` any time.
+That's it. `macpulse setup` starts background recording, builds the small alert app and sends a
+test alert (click **Allow** if macOS asks). Then run `macpulse` any time.
 
-Don't have `uv`? Install it first with `brew install uv`, or with
-`curl -LsSf https://astral.sh/uv/install.sh | sh` if you don't use Homebrew.
-Already use pipx? `pipx install git+https://github.com/anirudhjayaraman/macpulse` works too.
+To remove it: `macpulse uninstall`, then `brew uninstall macpulse`.
 
-To remove everything: `macpulse uninstall`, then `uv tool uninstall macpulse`.
+<details>
+<summary>Not using Homebrew?</summary>
+
+Install with [uv](https://docs.astral.sh/uv/) or pipx instead, then run `macpulse setup`:
+
+```bash
+uv tool install git+https://github.com/anirudhjayaraman/macpulse
+```
+
+</details>
 
 Needs macOS 12 or later. Clickable alerts need Apple's Command Line Tools (`xcode-select --install`);
 without them, everything else still works.
