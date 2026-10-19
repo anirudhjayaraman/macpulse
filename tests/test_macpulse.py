@@ -173,3 +173,18 @@ def test_agent_runs_through_app_when_installed(tmp_path, monkeypatch):
     args = scheduler.build_plist(15)["ProgramArguments"]
     assert args[0].endswith("macpulse.app/Contents/MacOS/MacpulseNotifier")
     assert args[1] == "--run" and args[3:6] == ["-m", "macpulse", "record"]
+
+
+def test_setup_works_without_command_line_tools(monkeypatch, capsys):
+    from macpulse import cli, notifier
+    installed = []
+    def no_tools():
+        raise RuntimeError("needs Apple's Command Line Tools.")
+    monkeypatch.setattr(notifier, "install", no_tools)
+    monkeypatch.setattr(notifier, "is_installed", lambda: False)
+    monkeypatch.setattr(scheduler, "install", lambda every, notify: installed.append((every, notify)))
+    monkeypatch.setattr(scheduler, "notify", lambda *a, **k: "osascript")
+    assert cli.main(["setup"]) == 0
+    out = capsys.readouterr().out
+    assert installed == [(15, True)]
+    assert "Skipped clickable alerts" in out and '"python3"' in out

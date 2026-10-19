@@ -89,39 +89,41 @@ Each finding comes with plain-English advice, and everything rolls up into a 0�
 
 ## Install
 
-```bash
-pipx install macpulse        # or: uv tool install macpulse
-macpulse notifier install    # optional: clickable alerts (needs Xcode Command Line Tools)
-macpulse schedule install    # start recording every 15 minutes
-```
-
-Or install the latest code straight from GitHub:
+Two commands in Terminal:
 
 ```bash
-pipx install git+https://github.com/anirudhjayaraman/macpulse
+uv tool install git+https://github.com/anirudhjayaraman/macpulse
+macpulse setup
 ```
 
-You need macOS 12+ and Python 3.9+. If you don't have pipx: `brew install pipx`.
-The notifier needs Xcode Command Line Tools (`xcode-select --install`); everything else works without them.
+`macpulse setup` does the rest: it starts background recording, builds the small alert app, and
+sends a test alert (click **Allow** if macOS asks). Then just run `macpulse` any time.
+
+Don't have `uv`? Install it first with `brew install uv`, or with
+`curl -LsSf https://astral.sh/uv/install.sh | sh` if you don't use Homebrew.
+Already use pipx? `pipx install git+https://github.com/anirudhjayaraman/macpulse` works too.
+
+To remove everything: `macpulse uninstall`, then `uv tool uninstall macpulse`.
+
+Needs macOS 12 or later. Clickable alerts need Apple's Command Line Tools (`xcode-select --install`);
+without them, everything else still works.
 
 ## Use
 
 ```bash
 macpulse                      # diagnose right now
-macpulse check --json         # same, machine-readable
-macpulse schedule install     # record every 15 min in the background (launchd)
-macpulse schedule install --every 5
 macpulse insights             # blame, RAM verdict, battery forecast, throttling
 macpulse report               # HTML report with insights and trends, opens in your browser
 macpulse history --days 30    # min/avg/max summary in the terminal
 macpulse export history.csv   # take your data to a spreadsheet or notebook
-macpulse schedule remove      # stop background recording
-macpulse notifier install     # make alerts clickable (opens your report)
+macpulse check --json         # machine-readable snapshot
+macpulse setup --every 5      # record every 5 minutes instead of 15
 macpulse notify-test          # check that alerts reach you
+macpulse uninstall            # stop background recording and remove the alert app
 ```
 
 The background agent shows up as **macpulse** in System Settings → General → Login Items &
-Extensions (once `macpulse notifier install` has been run; otherwise it shows as `python3`).
+Extensions (or as `python3` if the alert app couldn't be built).
 macOS labels it "unidentified developer" because it's signed on your own Mac rather than with a
 paid Apple Developer ID, which is normal for open-source command-line tools. Switching it off
 there stops recording.
@@ -131,13 +133,8 @@ when something is critical (e.g. memory pressure critical, battery overheating, 
 
 ## Notifications
 
-The background agent only alerts you when something is critical. For alerts that **open your
-macpulse report when you click them**, build macpulse's small notification app:
-
-```bash
-macpulse notifier install     # compiles it on your Mac (needs Xcode Command Line Tools)
-macpulse notify-test          # click Allow when macOS asks, then click the banner
-```
+The background agent only alerts you when something is critical, and clicking an alert opens your
+macpulse report. `macpulse setup` builds the small alert app that makes this work.
 
 It's built from source on your machine (`src/macpulse/notifier/MacpulseNotifier.swift`, about
 100 lines) and signed locally, so there's no downloaded binary and no Apple account involved.

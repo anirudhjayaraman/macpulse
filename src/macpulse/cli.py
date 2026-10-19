@@ -33,6 +33,55 @@ def _print_check(snap: dict, findings: list, score: int) -> None:
     print()
 
 
+def cmd_setup(args) -> int:
+    """Everything a new user needs, in one command."""
+    print("Setting up macpulse on this Mac...\n")
+    if args.no_notify:
+        print(color("  -", "dim"), "Alerts turned off (--no-notify).")
+    else:
+        try:
+            notifier.install()
+            print(color("  ✓", "ok"), "Built the macpulse alert app (clicking an alert opens your report).")
+        except RuntimeError as e:
+            print(color("  -", "dim"), f"Skipped clickable alerts: {e}")
+            print(color("    ", "dim"), "Alerts still work; they just open Script Editor when clicked.")
+    scheduler.install(args.every, notify=not args.no_notify)
+    shown_as = '"macpulse"' if notifier.is_installed() else '"python3"'
+    print(color("  ✓", "ok"), f"Recording in the background every {args.every} minutes "
+          f"(listed as {shown_as} in System Settings > General > Login Items).")
+    if not args.no_notify:
+        if notifier.is_installed():
+            status = notifier.send("macpulse is set up", "You'll only hear from macpulse when something is "
+                                   "critical. Click to see your report.", notifier.report_command(), timeout=60)
+            if status == "ok":
+                print(color("  ✓", "ok"), "Sent a test alert, and macOS is allowing alerts from macpulse.")
+            else:
+                print(color("  !", "warn"), f"The test alert didn't go through ({status}).")
+                print("    Allow alerts in System Settings > Notifications > macpulse, then run `macpulse notify-test`.")
+        else:
+            scheduler.notify("macpulse is set up", "You'll only hear from macpulse when something is critical.",
+                             open_report=False)
+            print(color("  ✓", "ok"), "Sent a test alert.")
+    print("\nDone. Try these:")
+    print("  macpulse            check your Mac right now")
+    print("  macpulse insights   why it was slow, RAM verdict, battery forecast (best after a few days)")
+    print("  macpulse report     everything in your browser")
+    print("  macpulse uninstall  stop and remove the background parts")
+    return 0
+
+
+def cmd_uninstall(args) -> int:
+    agent = scheduler.uninstall()
+    app = notifier.uninstall()
+    print("Stopped background recording." if agent else "Background recording wasn't on.")
+    if app:
+        print("Removed the macpulse alert app.")
+    print(f"Your history is kept in {storage.data_dir()}; delete that folder to remove it too.")
+    print("To remove the command itself: brew uninstall macpulse, pipx uninstall macpulse, "
+          "or uv tool uninstall macpulse (whichever you used).")
+    return 0
+
+
 def cmd_check(args) -> int:
     snap = collect(args.interval)
     findings = evaluate(snap)
@@ -41,6 +90,9 @@ def cmd_check(args) -> int:
         print(json.dumps({"score": score, "findings": [f.to_dict() for f in findings], "snapshot": snap}, indent=2))
     else:
         _print_check(snap, findings, score)
+        if not scheduler.status()["installed"]:
+            print(color("Tip: run `macpulse setup` to record in the background and unlock `macpulse insights`.\n",
+                        "dim"))
     if args.save:
         with storage.connect() as conn:
             storage.save(conn, snap, findings, score)
@@ -207,6 +259,14 @@ def build_parser() -> argparse.ArgumentParser:
         sp.add_argument("--interval", type=float, default=1.0, help="seconds to sample CPU/IO rates (default 1)")
         return sp
 
+    st = sub.add_parser("setup", help="one-step setup: background recording and alerts")
+    st.add_argument("--every", type=int, default=15, help="minutes between samples (default 15)")
+    st.add_argument("--no-notify", action="store_true", help="never show alerts")
+    st.set_defaults(func=cmd_setup)
+
+    un = sub.add_parser("uninstall", help="stop background recording and remove the alert app")
+    un.set_defaults(func=cmd_uninstall)
+
     c = add("check", cmd_check, "diagnose this Mac right now (default)")
     c.add_argument("--json", action="store_true", help="print machine-readable JSON")
     c.add_argument("--save", action="store_true", help="also store this sample in history")
@@ -256,7 +316,7 @@ def main(argv: list[str] | None = None) -> int:
         return 1
     parser = build_parser()
     argv = list(sys.argv[1:] if argv is None else argv)
-    commands = {"check", "record", "report", "history", "schedule", "export", "notify-test", "notifier", "insights"}
+    commands = {"check", "record", "report", "history", "schedule", "export", "notify-test", "notifier", "insights", "setup", "uninstall"}
     # `macpulse` and `macpulse --json` mean `macpulse check ...`.
     if not argv or (argv[0] not in commands and argv[0] not in ("-h", "--help", "--version")
                     and argv[0].startswith("-")):

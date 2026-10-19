@@ -58,8 +58,10 @@ def info_plist() -> dict:
 
 def install() -> Path:
     """Compile, bundle and sign the app. Raises RuntimeError with a readable reason."""
-    if not shutil.which("swiftc"):
-        raise RuntimeError("The Swift compiler isn't installed. Run `xcode-select --install`, then try again.")
+    # /usr/bin/swiftc exists even without the tools (it pops up an installer), so ask xcode-select.
+    if subprocess.run(["xcode-select", "-p"], capture_output=True).returncode != 0 or not shutil.which("swiftc"):
+        raise RuntimeError("needs Apple's Command Line Tools. Run `xcode-select --install`, "
+                           "then `macpulse setup` again.")
     app = app_path()
     with tempfile.TemporaryDirectory() as tmp:
         staged = Path(tmp) / f"{NAME}.app"
