@@ -1,0 +1,28 @@
+[build-system]
+requires = ["hatchling>=1.21"]
+build-backend = "hatchling.build"
+
+[project]
+name = "macpulse"
+version = "0.1.2"
+description = "Renamed: macpulse is now macverdict. Installing this installs macverdict."
+readme = "README.md"
+requires-python = ">=3.9"
+license = "MIT"
+authors = [{ name = "Anirudh Jayaraman" }]
+dependencies = ["macverdict>=0.2.0"]
+classifiers = [
+  "Development Status :: 7 - Inactive",
+  "Operating System :: MacOS",
+  "Programming Language :: Python :: 3",
+]
+
+[project.urls]
+Homepage = "https://github.com/anirudhjayaraman/macverdict"
+"New package" = "https://pypi.org/project/macverdict/"
+
+[project.scripts]
+macpulse = "macpulse:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/macpulse"]

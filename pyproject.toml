@@ -41,4 +41,4 @@ packages = ["src/macverdict"]
 testpaths = ["tests"]
 
 [tool.hatch.build.targets.sdist]
-exclude = ["docs"]
+exclude = ["docs", "legacy"]
