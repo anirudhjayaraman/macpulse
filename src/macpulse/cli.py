@@ -24,12 +24,16 @@ def _print_check(snap: dict, findings: list, score: int) -> None:
         print(f"  {color(f.level.upper().ljust(8), f.level)} {f.area.ljust(8)} {f.message}")
         if f.advice and f.level != "ok":
             print(color(f"  {'':8} {'':8} → {f.advice}", "dim"))
+    def procs(a: dict) -> str:
+        n = a.get("processes", 1)
+        return color(f"  ({n} processes)", "dim") if n > 1 else ""
+
     print(color("\n  Top CPU", "bold"))
-    for p in snap["top_cpu"][:3]:
-        print(f"    {p['cpu_percent']:6.1f}%  {p['name']}")
+    for a in insights.apps_in(snap, "cpu_percent")[:3]:
+        print(f"    {a['cpu_percent']:6.1f}%  {a['name']}{procs(a)}")
     print(color("  Top memory", "bold"))
-    for p in snap["top_memory"][:3]:
-        print(f"    {human_bytes(p['rss']):>9}  {p['name']}")
+    for a in insights.apps_in(snap, "rss")[:3]:
+        print(f"    {human_bytes(a['rss']):>9}  {a['name']}{procs(a)}")
     print()
 
 

@@ -79,7 +79,7 @@ def test_heavy_chrome_user_on_8gb():
 def test_occasional_pressure_is_just_enough():
     found = by_key(insights.build(make_rows(stress=lambda i: {"pressure": "warn"} if i % 25 == 0 else {}),
                                   16 * GB))
-    assert found["ram"].level == "ok" and "just enough" in found["ram"].headline
+    assert found["ram"].level == "ok" and "just enough" in found["ram"].headline and "briefly" in found["ram"].headline
     assert "24 GB" in " ".join(found["ram"].details)
 
 
@@ -139,3 +139,61 @@ def test_report_shows_insights():
     snap = make_snapshot()
     page = report.build(rows, snap, evaluate(snap), 2, insights.build(rows, 16 * GB, "MacBook Air"))
     assert "<h2>Insights</h2>" in page and "16 GB is plenty" in page
+
+
+# --- v0.1.1 regressions, from a real week of data -----------------------------------------
+
+def test_one_heavy_day_does_not_mean_buy_more_ram():
+    # Like the real week: a day and a half of Chrome-driven pressure, then six quiet days.
+    chrome = lambda gb: [{"name": "Google Chrome", "rss": gb * GB, "cpu_percent": 5.0, "processes": 24},
+                         {"name": "Claude", "rss": 2 * GB, "cpu_percent": 3.0, "processes": 13}]
+
+    def stress(i):
+        if 30 <= i < 150 and i % 4:     # most of day 1 and part of day 2
+            return {"pressure": "warn", "swap": 2 * GB, "apps": chrome(8)}
+        return {"apps": chrome(3)}
+
+    ram = insights.ram_verdict(make_rows(days=8, stress=stress), 16 * GB)
+    assert ram.level == "ok" and "isn't enough" not in ram.headline
+    assert "Google Chrome grows past about" in ram.headline   # 8 GB when it hurt vs 3 GB normally
+    assert "ran high on 2 of" in ram.details[0] and "none in the" in ram.details[0]
+
+
+def test_daily_pressure_most_of_the_time_still_means_more_ram():
+    rows = make_rows(days=10, stress=lambda i: {"pressure": "warn"} if i % 4 == 0 else {})
+    ram = insights.ram_verdict(rows, 16 * GB)
+    assert ram.level == "attention" and "next Mac should have 24 GB" in ram.headline
+
+
+def test_battery_noise_is_not_reported_as_wear():
+    # Capacity readings bounce between 98.2% and 100.1%, as real ones do.
+    noisy = [98.2, 99.4, 100.1, 98.9, 99.7]
+    rows = make_rows(days=7, per_day=24, battery=lambda i, f: {
+        "cycle_count": 74, "max_capacity_percent": 100, "health_percent": noisy[i % len(noisy)]})
+    b = insights.battery_forecast(rows)
+    assert b.headline == "Healthy: 100% capacity, with too little wear to measure yet."
+    assert any("drifts by about" in d for d in b.details)
+    assert not any("more cycles" in d for d in [b.headline, *b.details])
+
+
+def test_repeat_offenders_never_exceed_sample_count():
+    from test_macpulse import make_snapshot
+    rows = make_rows(days=1, per_day=48)
+    for r in rows:   # three same-named Chrome helpers in every old-style sample
+        r["snapshot"].pop("apps")
+        r["snapshot"]["top_memory"] = [{"pid": p, "name": "Google Chrome Helper (Renderer)", "rss": GB,
+                                        "cpu_percent": 1.0} for p in (1, 2, 3)]
+        r["snapshot"]["top_cpu"] = []
+        r.update(score=100, mem_percent=50.0, disk_free_percent=50.0, battery_percent=70.0, battery_health=96)
+    snap = make_snapshot()
+    page = report.build(rows, snap, evaluate(snap), 1)
+    assert "<td>Google Chrome</td><td>48 (100%)</td>" in page
+
+
+def test_charts_break_across_sleep_and_label_days():
+    rows = make_rows(days=3, per_day=24)
+    rows = [r for i, r in enumerate(rows) if not 20 <= i < 30]   # ~10 hours asleep
+    pts = [(r["ts"], 50.0) for r in rows]
+    svg = report._chart(pts)
+    assert svg.count("<polyline") == 2
+    assert len(report._ticks(pts[0][0], pts[-1][0])) >= 2

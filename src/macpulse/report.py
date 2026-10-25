@@ -5,10 +5,11 @@ from __future__ import annotations
 import html
 import time
 from collections import Counter
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any
 
 from .fmt import days_label, human_bytes, human_duration
+from .insights import apps_in
 
 GB = 1024 ** 3
 
@@ -42,30 +43,88 @@ footer{margin-top:40px;color:var(--muted);font-size:13px}
 """
 
 
+GAP_SECONDS = 2 * 3600  # a longer gap between samples means the Mac was asleep or off
+
+
+def _segments(pts: list[tuple[float, float]]) -> list[list[tuple[float, float]]]:
+    """Split into runs of consecutive samples, so lines don't bridge sleep."""
+    segs = [[pts[0]]]
+    for prev, cur in zip(pts, pts[1:]):
+        if cur[0] - prev[0] > GAP_SECONDS:
+            segs.append([])
+        segs[-1].append(cur)
+    return segs
+
+
+def _ticks(t0: float, t1: float) -> list[tuple[float, str]]:
+    """Midnight ticks labelled "Mon 19" (thinned for long spans); 6-hour ticks for short ones."""
+    start = datetime.fromtimestamp(t0).replace(hour=0, minute=0, second=0, microsecond=0)
+    if t1 - t0 < 2 * 86400:
+        step, fmt = timedelta(hours=6), "%H:%M"
+    else:
+        step, fmt = timedelta(days=1), "%a %-d"
+    ticks, t = [], start
+    while t.timestamp() <= t1:
+        if t.timestamp() >= t0:
+            ticks.append((t.timestamp(), t.strftime(fmt)))
+        t += step
+    every = max(1, len(ticks) // 7)
+    return ticks[::every]
+
+
 def _chart(points: list[tuple[float, float]], lo: float = 0, hi: float | None = None,
-           unit: str = "", color: str = "var(--accent)") -> str:
-    w, h, pad = 320, 110, 4
+           unit: str = "", color: str = "var(--accent)",
+           bands: list[tuple[float, float]] | None = None) -> str:
+    """Line chart with day labels, gaps where the Mac slept, and optional shaded bands."""
+    w, plot_h, axis_h, pad = 320, 110, 14, 4
+    h = plot_h + axis_h
     pts = [(t, v) for t, v in points if v is not None]
     if len(pts) < 2:
         return '<p class="adv">Not enough data yet. Keep recording.</p>'
     t0, t1 = pts[0][0], pts[-1][0]
     hi = hi if hi is not None else max(v for _, v in pts) * 1.1 or 1
     span_t, span_v = (t1 - t0) or 1, (hi - lo) or 1
+    base_y = plot_h - pad
 
-    def xy(t, v):
-        return pad + (t - t0) / span_t * (w - 2 * pad), h - pad - (min(max(v, lo), hi) - lo) / span_v * (h - 2 * pad)
+    def x_of(t):
+        return pad + (t - t0) / span_t * (w - 2 * pad)
 
-    coords = " ".join(f"{x:.1f},{y:.1f}" for x, y in (xy(t, v) for t, v in pts))
-    first_x, last_x = xy(t0, lo)[0], xy(t1, lo)[0]
-    base_y = h - pad
+    def y_of(v):
+        return plot_h - pad - (min(max(v, lo), hi) - lo) / span_v * (plot_h - 2 * pad)
+
+    shading = "".join(
+        f'<rect x="{x_of(a):.1f}" y="{pad}" width="{max(1.5, x_of(b) - x_of(a)):.1f}" '
+        f'height="{plot_h - 2 * pad}" fill="var(--warn)" opacity=".18"/>'
+        for a, b in bands or [])
     grid = "".join(f'<line x1="0" x2="{w}" y1="{y}" y2="{y}" stroke="var(--line)"/>'
-                   for y in (pad, h / 2, h - pad))
+                   for y in (pad, plot_h / 2, base_y))
+    ticks = "".join(
+        f'<line x1="{x_of(t):.1f}" x2="{x_of(t):.1f}" y1="{pad}" y2="{base_y}" stroke="var(--line)" '
+        f'stroke-dasharray="2 3"/>'
+        f'<text x="{x_of(t):.1f}" y="{h - 2}" text-anchor="middle" font-size="9" fill="var(--muted)">{label}</text>'
+        for t, label in _ticks(t0, t1))
+    lines = ""
+    for seg in _segments(pts):
+        coords = " ".join(f"{x_of(t):.1f},{y_of(v):.1f}" for t, v in seg)
+        if len(seg) == 1:
+            x, y = x_of(seg[0][0]), y_of(seg[0][1])
+            lines += f'<circle cx="{x:.1f}" cy="{y:.1f}" r="1.6" fill="{color}"/>'
+            continue
+        lines += (f'<polyline points="{coords}" fill="none" stroke="{color}" stroke-width="1.6" '
+                  f'stroke-linejoin="round" stroke-linecap="round"/>')
     labels = (f'<text x="{w}" y="12" text-anchor="end" font-size="10" fill="var(--muted)">{hi:.0f}{unit}</text>'
-              f'<text x="{w}" y="{h - 6}" text-anchor="end" font-size="10" fill="var(--muted)">{lo:.0f}{unit}</text>')
-    return (f'<svg viewBox="0 0 {w} {h}" role="img">{grid}'
-            f'<polygon points="{first_x:.1f},{base_y} {coords} {last_x:.1f},{base_y}" fill="{color}" opacity=".12"/>'
-            f'<polyline points="{coords}" fill="none" stroke="{color}" stroke-width="1.8" '
-            f'stroke-linejoin="round"/>{labels}</svg>')
+              f'<text x="{w}" y="{base_y - 3}" text-anchor="end" font-size="10" fill="var(--muted)">{lo:.0f}{unit}</text>')
+    return f'<svg viewBox="0 0 {w} {h}" role="img">{shading}{grid}{ticks}{lines}{labels}</svg>'
+
+
+def _pressure_bands(rows: list[dict]) -> list[tuple[float, float]]:
+    """Time spans where memory pressure was elevated (each sample shades until the next)."""
+    bands = []
+    for i, r in enumerate(rows):
+        if r.get("pressure") in ("warn", "critical"):
+            nxt = rows[i + 1]["ts"] if i + 1 < len(rows) else r["ts"] + 900
+            bands.append((r["ts"], min(nxt, r["ts"] + 900)))
+    return bands
 
 
 def _series(rows: list[dict], key: str, scale: float = 1) -> list[tuple[float, float]]:
@@ -85,10 +144,11 @@ def build(rows: list[dict], latest_snapshot: dict, findings: list, days: float,
           insights: list | None = None) -> str:
     sysinfo = latest_snapshot["system"]
     last = rows[-1] if rows else {}
-    offenders = Counter(p["name"] for r in rows if r.get("snapshot")
-                        for p in r["snapshot"].get("top_cpu", [])[:3] if p["cpu_percent"] >= 10)
-    mem_hogs = Counter(p["name"] for r in rows if r.get("snapshot")
-                       for p in r["snapshot"].get("top_memory", [])[:3])
+    # Count each app at most once per sample, so no app can exceed the sample count.
+    snaps = [r["snapshot"] for r in rows if r.get("snapshot")]
+    offenders = Counter(name for snap in snaps for name in
+                        {a["name"] for a in apps_in(snap, "cpu_percent")[:3] if a["cpu_percent"] >= 10})
+    mem_hogs = Counter(name for snap in snaps for name in {a["name"] for a in apps_in(snap, "rss")[:3]})
 
     def stat(label, value):
         return f'<div class="tile"><div class="k">{label}</div><div class="v">{value}</div></div>'
@@ -107,8 +167,9 @@ def build(rows: list[dict], latest_snapshot: dict, findings: list, days: float,
     charts = "".join([
         _card("Health score", f"now {last.get('score', '–')}", _chart(_series(rows, "score"), 0, 100, "", "var(--ok)")),
         _card("CPU", f"now {last.get('cpu_percent', 0):.0f}%", _chart(_series(rows, "cpu_percent"), 0, 100, "%")),
-        _card("Memory used", f"now {last.get('mem_percent', 0):.0f}%, pressure {last.get('pressure')}",
-              _chart(_series(rows, "mem_percent"), 0, 100, "%", "var(--info)")),
+        _card("Memory used", f"now {last.get('mem_percent', 0):.0f}%, pressure {last.get('pressure')}"
+                            + (" · shaded: memory pressure" if any(r.get("pressure") in ("warn", "critical") for r in rows) else ""),
+              _chart(_series(rows, "mem_percent"), 0, 100, "%", "var(--info)", _pressure_bands(rows))),
         _card("Swap used", f"now {human_bytes(last.get('swap_used'))}",
               _chart(_series(rows, "swap_used", GB), 0, None, " GB", "var(--warn)")),
         _card("Disk free", f"now {last.get('disk_free_percent', 0):.0f}%",
@@ -127,8 +188,9 @@ def build(rows: list[dict], latest_snapshot: dict, findings: list, days: float,
     def table(counter: Counter, label: str) -> str:
         if not counter:
             return '<p class="adv">No data yet.</p>'
-        body = "".join(f"<tr><td>{html.escape(n)}</td><td>{c}</td></tr>" for n, c in counter.most_common(8))
-        return f"<table><tr><th>Process</th><th>{label}</th></tr>{body}</table>"
+        body = "".join(f"<tr><td>{html.escape(n)}</td><td>{c} ({100 * c / len(snaps):.0f}%)</td></tr>"
+                       for n, c in counter.most_common(8))
+        return f"<table><tr><th>App</th><th>{label}</th></tr>{body}</table>"
 
     level_class = {"good": "ok", "ok": "info", "attention": "warn"}
     insight_html = "".join(
@@ -153,7 +215,7 @@ def build(rows: list[dict], latest_snapshot: dict, findings: list, days: float,
 <h2>Right now</h2><div class="card">{finding_html}</div>
 <h2>Trends</h2><div class="grid">{charts}</div>
 <h2>Repeat offenders</h2><div class="grid">
-<div class="card"><h3>Most often hogging CPU</h3>{table(offenders, "Samples in top 3")}</div>
-<div class="card"><h3>Most often hogging memory</h3>{table(mem_hogs, "Samples in top 3")}</div></div>
+<div class="card"><h3>Most often hogging CPU</h3>{table(offenders, f"Samples in top 3, of {len(snaps)}")}</div>
+<div class="card"><h3>Most often hogging memory</h3>{table(mem_hogs, f"Samples in top 3, of {len(snaps)}")}</div></div>
 <footer>Generated {generated} by macpulse.</footer>
 </main></body></html>"""

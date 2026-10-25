@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "macpulse"
-version = "0.1.0"
+version = "0.1.1"
 description = "Lightweight performance diagnostics and history for your Mac: CPU, memory pressure, swap, disk, battery health and thermals, with a health score, HTML reports and launchd scheduling."
 readme = "README.md"
 requires-python = ">=3.9"
