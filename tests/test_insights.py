@@ -2,9 +2,9 @@
 
 import time
 
-from macpulse import insights, report
-from macpulse.checks import evaluate
-from macpulse.collectors import app_name
+from macverdict import insights, report
+from macverdict.checks import evaluate
+from macverdict.collectors import app_name
 
 GB = 1024 ** 3
 DAY = 86400
@@ -132,7 +132,7 @@ def test_app_name_grouping():
 
 
 def test_report_shows_insights():
-    from test_macpulse import make_snapshot
+    from test_macverdict import make_snapshot
     rows = make_rows(days=2)
     for r in rows:
         r.update(score=100, mem_percent=50.0, disk_free_percent=50.0, battery_percent=70.0, battery_health=96)
@@ -177,7 +177,7 @@ def test_battery_noise_is_not_reported_as_wear():
 
 
 def test_repeat_offenders_never_exceed_sample_count():
-    from test_macpulse import make_snapshot
+    from test_macverdict import make_snapshot
     rows = make_rows(days=1, per_day=48)
     for r in rows:   # three same-named Chrome helpers in every old-style sample
         r["snapshot"].pop("apps")

@@ -1,4 +1,4 @@
-"""SQLite history of snapshots, stored under ~/Library/Application Support/macpulse."""
+"""SQLite history of snapshots, stored under ~/Library/Application Support/macverdict."""
 
 from __future__ import annotations
 
@@ -6,6 +6,7 @@ import csv
 import json
 import os
 import re
+import shutil
 import sqlite3
 import sys
 import time
@@ -38,17 +39,36 @@ CREATE TABLE IF NOT EXISTS samples (
 """
 
 
+# macverdict was called macpulse until 0.2.0.
+LEGACY_NAME = "macpulse"
+
+
+def legacy_dir() -> Path:
+    return Path.home() / "Library" / "Application Support" / LEGACY_NAME
+
+
 def data_dir() -> Path:
-    override = os.environ.get("MACPULSE_HOME")
-    path = Path(override) if override else Path.home() / "Library" / "Application Support" / "macpulse"
+    override = os.environ.get("MACVERDICT_HOME")
+    path = Path(override) if override else Path.home() / "Library" / "Application Support" / "macverdict"
     path.mkdir(parents=True, exist_ok=True)
+    if not override:
+        migrate_legacy_history(path)
     return path
+
+
+def migrate_legacy_history(path: Path) -> bool:
+    """Copy history recorded under the old macpulse name, once. The old folder is left as a backup."""
+    old, new = legacy_dir() / "history.db", path / "history.db"
+    if new.exists() or not old.exists():
+        return False
+    shutil.copy2(old, new)
+    return True
 
 
 def stable_python() -> str:
     """The Python to put in launchd jobs and click actions.
 
-    Homebrew installs into a versioned folder (Cellar/macpulse/0.1.0/...) that is
+    Homebrew installs into a versioned folder (Cellar/macverdict/0.1.0/...) that is
     deleted on upgrade, so use its version-independent opt/ link instead.
     """
     exe = sys.executable

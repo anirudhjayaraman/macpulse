@@ -205,9 +205,9 @@ def build(rows: list[dict], latest_snapshot: dict, findings: list, days: float,
     uptime = human_duration(latest_snapshot["timestamp"] - sysinfo["boot_time"])
     generated = datetime.fromtimestamp(time.time()).strftime("%Y-%m-%d %H:%M")
     return f"""<!doctype html><html lang="en"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1"><title>macpulse report</title>
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>macverdict report</title>
 <style>{CSS}</style></head><body><main>
-<h1>macpulse report</h1>
+<h1>macverdict report</h1>
 <p class="sub">{html.escape(sysinfo.get('chip') or '')} · {html.escape(sysinfo.get('model') or '')} · macOS {html.escape(sysinfo.get('macos') or '')}
 · {human_bytes(sysinfo['memory_total'])} RAM · up {uptime} · {span}</p>
 <div class="tiles">{tiles}</div>
@@ -217,5 +217,5 @@ def build(rows: list[dict], latest_snapshot: dict, findings: list, days: float,
 <h2>Repeat offenders</h2><div class="grid">
 <div class="card"><h3>Most often hogging CPU</h3>{table(offenders, f"Samples in top 3, of {len(snaps)}")}</div>
 <div class="card"><h3>Most often hogging memory</h3>{table(mem_hogs, f"Samples in top 3, of {len(snaps)}")}</div></div>
-<footer>Generated {generated} by macpulse.</footer>
+<footer>Generated {generated} by macverdict.</footer>
 </main></body></html>"""

@@ -3,9 +3,9 @@ requires = ["hatchling>=1.21"]
 build-backend = "hatchling.build"
 
 [project]
-name = "macpulse"
-version = "0.1.1"
-description = "Lightweight performance diagnostics and history for your Mac: CPU, memory pressure, swap, disk, battery health and thermals, with a health score, HTML reports and launchd scheduling."
+name = "macverdict"
+version = "0.2.0"
+description = "Stop watching graphs: macverdict tells you why your Mac was slow this week and what to do about it. Slowdown blame, RAM verdict, battery forecast and MacBook Air throttling, from quiet background sampling."
 readme = "README.md"
 requires-python = ">=3.9"
 license = "MIT"
@@ -24,18 +24,18 @@ classifiers = [
 dependencies = ["psutil>=5.9"]
 
 [project.urls]
-Homepage = "https://github.com/anirudhjayaraman/macpulse"
-Source = "https://github.com/anirudhjayaraman/macpulse"
-Issues = "https://github.com/anirudhjayaraman/macpulse/issues"
+Homepage = "https://github.com/anirudhjayaraman/macverdict"
+Source = "https://github.com/anirudhjayaraman/macverdict"
+Issues = "https://github.com/anirudhjayaraman/macverdict/issues"
 
 [project.optional-dependencies]
 dev = ["pytest>=7"]
 
 [project.scripts]
-macpulse = "macpulse.cli:main"
+macverdict = "macverdict.cli:main"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/macpulse"]
+packages = ["src/macverdict"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

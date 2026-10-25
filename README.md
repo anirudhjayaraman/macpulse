@@ -1,9 +1,11 @@
-# macpulse
+# macverdict
 
-**Stop watching graphs. macpulse tells you why your Mac was slow this week, and what to do about it.**
+**Stop watching graphs. macverdict tells you why your Mac was slow this week, and what to do about it.**
+
+*Formerly called macpulse. If you installed it under that name, run `macverdict setup` once: it brings your history across and removes the old parts.*
 
 Activity Monitor, Stats and iStat Menus show you numbers *right now*, and leave the diagnosis to you.
-macpulse quietly samples your Mac in the background (about one second every 15 minutes) and turns
+macverdict quietly samples your Mac in the background (about one second every 15 minutes) and turns
 weeks of history into four plain answers:
 
 1. **What's slowing me down?** It blames the app that was actually the biggest memory or CPU user
@@ -16,8 +18,8 @@ weeks of history into four plain answers:
    which apps were running when it did.
 
 ```
-$ macpulse insights          # illustration: three weeks on an 8 GB MacBook Air
-macpulse insights · MacBook Air · 8.0 GB RAM · last 30 days
+$ macverdict insights          # illustration: three weeks on an 8 GB MacBook Air
+macverdict insights · MacBook Air · 8.0 GB RAM · last 30 days
 
 ● What's slowing you down
   Google Chrome was the biggest memory user in 85% of your 794 slowdown moments.
@@ -41,15 +43,15 @@ macpulse insights · MacBook Air · 8.0 GB RAM · last 30 days
 
 ## See it on a real Mac
 
-A real week on a MacBook Air (Apple M5, 16 GB). `macpulse report` turns the history into a page
-like this. **[Open the full sample report](https://anirudhjayaraman.github.io/macpulse/sample-report.html)**.
+A real week on a MacBook Air (Apple M5, 16 GB). `macverdict report` turns the history into a page
+like this. **[Open the full sample report](https://anirudhjayaraman.github.io/macverdict/sample-report.html)**.
 
-![macpulse insights: Chrome behind every slowdown, 16 GB is enough, battery healthy, no throttling](https://raw.githubusercontent.com/anirudhjayaraman/macpulse/main/docs/insights.png)
+![macverdict insights: Chrome behind every slowdown, 16 GB is enough, battery healthy, no throttling](https://raw.githubusercontent.com/anirudhjayaraman/macverdict/main/docs/insights.png)
 
 The trends make the story visible: memory pressure (shaded) on Mon 19 and Tue 20, matching the
 swap spike, then a quiet rest of the week.
 
-![macpulse trends: a week of health score, CPU, memory with pressure shaded, swap, disk, battery](https://raw.githubusercontent.com/anirudhjayaraman/macpulse/main/docs/trends.png)
+![macverdict trends: a week of health score, CPU, memory with pressure shaded, swap, disk, battery](https://raw.githubusercontent.com/anirudhjayaraman/macverdict/main/docs/trends.png)
 
 Free and open source, one dependency (`psutil`), no sudo, no cloud: nothing leaves your Mac.
 Built for Apple-silicon MacBooks, works on any Mac running macOS 12+.
@@ -65,17 +67,17 @@ Built for Apple-silicon MacBooks, works on any Mac running macOS 12+.
 | [Glances](https://github.com/nicolargo/glances) | ✅ any OS | Short buffer / export | ❌ | Free |
 | [Mole](https://github.com/tw93/mole) `mo status` | ✅ | ❌ | Live health score | Free |
 | [coconutBattery](https://www.coconut-flavour.com/coconutbattery/) | Battery only | ✅ battery | ❌ | Free / paid |
-| **macpulse** | Snapshot (`macpulse`) | ✅ everything | ✅ **blame, RAM verdict, battery forecast, throttling** | **Free** |
+| **macverdict** | Snapshot (`macverdict`) | ✅ everything | ✅ **blame, RAM verdict, battery forecast, throttling** | **Free** |
 
-**Use macpulse alongside a live monitor, not instead of one.** If you want to watch GPU power or fan
-speed in real time, Stats and macmon are excellent. macpulse answers the questions those tools can't:
+**Use macverdict alongside a live monitor, not instead of one.** If you want to watch GPU power or fan
+speed in real time, Stats and macmon are excellent. macverdict answers the questions those tools can't:
 what happened over the last few weeks, and what you should change.
 
 ## Everyday health check
 
 ```
-$ macpulse
-macpulse · Apple M5 · macOS 26.5.2 · 16.0 GB RAM · up 1d 17h
+$ macverdict
+macverdict · Apple M5 · macOS 26.5.2 · 16.0 GB RAM · up 1d 17h
 
 Health score: 100 / 100
 
@@ -102,22 +104,22 @@ Each finding comes with plain-English advice, and everything rolls up into a 0�
 ## Install
 
 ```bash
-brew install anirudhjayaraman/tap/macpulse
-macpulse setup
+brew install anirudhjayaraman/tap/macverdict
+macverdict setup
 ```
 
-That's it. `macpulse setup` starts background recording, builds the small alert app and sends a
-test alert (click **Allow** if macOS asks). Then run `macpulse` any time.
+That's it. `macverdict setup` starts background recording, builds the small alert app and sends a
+test alert (click **Allow** if macOS asks). Then run `macverdict` any time.
 
-To remove it: `macpulse uninstall`, then `brew uninstall macpulse`.
+To remove it: `macverdict uninstall`, then `brew uninstall macverdict`.
 
 <details>
 <summary>Not using Homebrew?</summary>
 
-Install with [uv](https://docs.astral.sh/uv/) or pipx instead, then run `macpulse setup`:
+Install with [uv](https://docs.astral.sh/uv/) or pipx instead, then run `macverdict setup`:
 
 ```bash
-uv tool install git+https://github.com/anirudhjayaraman/macpulse
+uv tool install git+https://github.com/anirudhjayaraman/macverdict
 ```
 
 </details>
@@ -128,18 +130,18 @@ without them, everything else still works.
 ## Use
 
 ```bash
-macpulse                      # diagnose right now
-macpulse insights             # blame, RAM verdict, battery forecast, throttling
-macpulse report               # HTML report with insights and trends, opens in your browser
-macpulse history --days 30    # min/avg/max summary in the terminal
-macpulse export history.csv   # take your data to a spreadsheet or notebook
-macpulse check --json         # machine-readable snapshot
-macpulse setup --every 5      # record every 5 minutes instead of 15
-macpulse notify-test          # check that alerts reach you
-macpulse uninstall            # stop background recording and remove the alert app
+macverdict                      # diagnose right now
+macverdict insights             # blame, RAM verdict, battery forecast, throttling
+macverdict report               # HTML report with insights and trends, opens in your browser
+macverdict history --days 30    # min/avg/max summary in the terminal
+macverdict export history.csv   # take your data to a spreadsheet or notebook
+macverdict check --json         # machine-readable snapshot
+macverdict setup --every 5      # record every 5 minutes instead of 15
+macverdict notify-test          # check that alerts reach you
+macverdict uninstall            # stop background recording and remove the alert app
 ```
 
-The background agent shows up as **macpulse** in System Settings → General → Login Items &
+The background agent shows up as **macverdict** in System Settings → General → Login Items &
 Extensions (or as `python3` if the alert app couldn't be built).
 macOS labels it "unidentified developer" because it's signed on your own Mac rather than with a
 paid Apple Developer ID, which is normal for open-source command-line tools. Switching it off
@@ -151,20 +153,20 @@ when something is critical (e.g. memory pressure critical, battery overheating, 
 ## Notifications
 
 The background agent only alerts you when something is critical, and clicking an alert opens your
-macpulse report. `macpulse setup` builds the small alert app that makes this work.
+macverdict report. `macverdict setup` builds the small alert app that makes this work.
 
-It's built from source on your machine (`src/macpulse/notifier/MacpulseNotifier.swift`, about
+It's built from source on your machine (`src/macverdict/notifier/MacverdictNotifier.swift`, about
 100 lines) and signed locally, so there's no downloaded binary and no Apple account involved.
 It has no Dock icon and only runs for a few seconds when posting an alert or handling a click.
 
-Without it, macpulse falls back to macOS's built-in `osascript`. Those alerts show as coming
+Without it, macverdict falls back to macOS's built-in `osascript`. Those alerts show as coming
 from **Script Editor**, and clicking one opens Script Editor. If no banner appears at all, check
-System Settings → Notifications (macpulse or Script Editor) and that no Focus mode is on.
+System Settings → Notifications (macverdict or Script Editor) and that no Focus mode is on.
 
 ## Use it from Python
 
 ```python
-from macpulse import collect, evaluate, health_score, insights, storage
+from macverdict import collect, evaluate, health_score, insights, storage
 
 snap = collect()
 findings = evaluate(snap)
@@ -177,8 +179,8 @@ for i in insights.build(rows, snap["system"]["memory_total"], insights.hardware_
 
 ## Where data lives
 
-`~/Library/Application Support/macpulse/` holds `history.db` (SQLite), `report.html` and the agent
-logs. Samples older than 90 days are pruned automatically. Set `MACPULSE_HOME` to use another folder.
+`~/Library/Application Support/macverdict/` holds `history.db` (SQLite), `report.html` and the agent
+logs. Samples older than 90 days are pruned automatically. Set `MACVERDICT_HOME` to use another folder.
 
 ## How it works
 

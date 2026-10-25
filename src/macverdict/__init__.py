@@ -1,6 +1,6 @@
-"""macpulse: performance diagnostics and history for macOS."""
+"""macverdict: tells you why your Mac was slow, and what to do about it. (Formerly macpulse.)"""
 
-__version__ = "0.1.1"
+__version__ = "0.2.0"
 
 from .checks import Finding, evaluate, health_score
 from .collectors import collect

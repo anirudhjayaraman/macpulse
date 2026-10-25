@@ -1,11 +1,11 @@
-// MacpulseNotifier: a tiny menu-less app that posts macpulse alerts.
+// MacverdictNotifier: a tiny menu-less app that posts macverdict alerts.
 //
-// Post:   MacpulseNotifier --title T --message M [--status-file PATH] [--exec CMD ARGS...]
-// Run:    MacpulseNotifier --run PROGRAM ARGS...   (used by the background agent)
+// Post:   MacverdictNotifier --title T --message M [--status-file PATH] [--exec CMD ARGS...]
+// Run:    MacverdictNotifier --run PROGRAM ARGS...   (used by the background agent)
 // Click:  macOS relaunches the app and hands it the click; it runs the --exec
-//         command saved with the notification (macpulse uses `macpulse report`).
+//         command saved with the notification (macverdict uses `macverdict report`).
 //
-// Built locally by `macpulse notifier install`, so it needs no Apple signature.
+// Built locally by `macverdict notifier install`, so it needs no Apple signature.
 
 import AppKit
 import UserNotifications
@@ -51,10 +51,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
                 return
             }
             let content = UNMutableNotificationContent()
-            content.title = self.args.options["title"] ?? "macpulse"
+            content.title = self.args.options["title"] ?? "macverdict"
             content.body = message
             content.sound = .default
-            content.threadIdentifier = "macpulse"
+            content.threadIdentifier = "macverdict"
             if !self.args.exec.isEmpty {
                 content.userInfo = ["exec": self.args.exec]
             }
@@ -97,8 +97,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
     }
 }
 
-// Run mode: launchd starts macpulse's background job through this app, so macOS
-// lists it as "macpulse" in Login Items instead of "python3".
+// Run mode: launchd starts macverdict's background job through this app, so macOS
+// lists it as "macverdict" in Login Items instead of "python3".
 let argv = CommandLine.arguments
 if argv.count >= 3 && argv[1] == "--run" {
     let process = Process()
@@ -107,7 +107,7 @@ if argv.count >= 3 && argv[1] == "--run" {
     do {
         try process.run()
     } catch {
-        FileHandle.standardError.write("macpulse: could not start \(argv[2]): \(error)\n".data(using: .utf8)!)
+        FileHandle.standardError.write("macverdict: could not start \(argv[2]): \(error)\n".data(using: .utf8)!)
         exit(127)
     }
     process.waitUntilExit()

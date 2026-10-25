@@ -4,8 +4,8 @@ import time
 
 import pytest
 
-from macpulse import report, scheduler, storage
-from macpulse.checks import evaluate, health_score, worst_level
+from macverdict import report, scheduler, storage
+from macverdict.checks import evaluate, health_score, worst_level
 
 GB = 1024 ** 3
 
@@ -64,7 +64,7 @@ def test_desktop_without_battery():
 
 
 def test_storage_roundtrip_and_report(tmp_path, monkeypatch):
-    monkeypatch.setenv("MACPULSE_HOME", str(tmp_path))
+    monkeypatch.setenv("MACVERDICT_HOME", str(tmp_path))
     conn = storage.connect()
     base = make_snapshot()
     for i in range(5):
@@ -87,16 +87,16 @@ def test_storage_roundtrip_and_report(tmp_path, monkeypatch):
 
 
 def test_launchd_plist(tmp_path, monkeypatch):
-    monkeypatch.setenv("MACPULSE_HOME", str(tmp_path))
+    monkeypatch.setenv("MACVERDICT_HOME", str(tmp_path))
     plist = scheduler.build_plist(30)
     assert plist["StartInterval"] == 1800
-    assert plist["ProgramArguments"][1:4] == ["-m", "macpulse", "record"]
+    assert plist["ProgramArguments"][1:4] == ["-m", "macverdict", "record"]
     assert "--notify" in plist["ProgramArguments"]
 
 
 @pytest.mark.skipif(sys.platform != "darwin", reason="macOS only")
 def test_live_collect():
-    from macpulse.collectors import collect
+    from macverdict.collectors import collect
     snap = collect(interval=0.2)
     assert 0 <= snap["cpu"]["percent"] <= 100
     assert snap["disk"]["total"] > 0
@@ -105,7 +105,7 @@ def test_live_collect():
 
 @pytest.mark.parametrize("argv", [[], ["--json"], ["--interval", "0.1"]])
 def test_bare_options_default_to_check(argv, monkeypatch):
-    from macpulse import cli
+    from macverdict import cli
     calls = []
     monkeypatch.setattr(cli, "cmd_check", lambda args: calls.append(args) or 0)
     assert cli.main(argv) == 0
@@ -113,7 +113,7 @@ def test_bare_options_default_to_check(argv, monkeypatch):
 
 
 def test_days_label():
-    from macpulse.fmt import days_label
+    from macverdict.fmt import days_label
     assert days_label(1) == "1 day" and days_label(7) == "7 days" and days_label(0.5) == "0.5 days"
 
 
@@ -121,17 +121,17 @@ class _Done:
     returncode = 0
 
 
-def test_notify_prefers_macpulse_notifier(monkeypatch):
-    from macpulse import notifier
+def test_notify_prefers_macverdict_notifier(monkeypatch):
+    from macverdict import notifier
     sent = []
     monkeypatch.setattr(notifier, "is_installed", lambda: True)
     monkeypatch.setattr(notifier, "send", lambda t, m, on_click=None: sent.append(on_click) or "ok")
-    assert scheduler.notify("t", "m") == "macpulse"
-    assert sent[0][1:] == ["-m", "macpulse", "report"]
+    assert scheduler.notify("t", "m") == "macverdict"
+    assert sent[0][1:] == ["-m", "macverdict", "report"]
 
 
 def test_notify_falls_back_to_osascript(monkeypatch):
-    from macpulse import notifier
+    from macverdict import notifier
     calls = []
     monkeypatch.setattr(notifier, "is_installed", lambda: True)
     monkeypatch.setattr(notifier, "send", lambda *a, **k: "denied: notifications are turned off")
@@ -141,8 +141,8 @@ def test_notify_falls_back_to_osascript(monkeypatch):
 
 
 def test_notifier_bundle(tmp_path, monkeypatch):
-    from macpulse import notifier
-    monkeypatch.setenv("MACPULSE_HOME", str(tmp_path))
+    from macverdict import notifier
+    monkeypatch.setenv("MACVERDICT_HOME", str(tmp_path))
     info = notifier.info_plist()
     assert info["CFBundleIdentifier"] == notifier.BUNDLE_ID and info["LSUIElement"] is True
     assert notifier.SOURCE.exists()
@@ -153,10 +153,10 @@ def test_notifier_bundle(tmp_path, monkeypatch):
 @pytest.mark.skipif(sys.platform != "darwin" or not __import__("shutil").which("swiftc"),
                     reason="needs macOS with the Swift compiler")
 def test_notifier_compiles(tmp_path, monkeypatch):
-    from macpulse import notifier
-    monkeypatch.setenv("MACPULSE_HOME", str(tmp_path))
+    from macverdict import notifier
+    monkeypatch.setenv("MACVERDICT_HOME", str(tmp_path))
     app = notifier.install()
-    assert app.name == "macpulse.app"
+    assert app.name == "macverdict.app"
     assert (app / "Contents" / "MacOS" / notifier.NAME).exists()
     import subprocess
     ran = subprocess.run([str(notifier.executable()), "--run", "/bin/sh", "-c", "echo hi; exit 3"],
@@ -166,17 +166,17 @@ def test_notifier_compiles(tmp_path, monkeypatch):
 
 
 def test_agent_runs_through_app_when_installed(tmp_path, monkeypatch):
-    from macpulse import notifier
-    monkeypatch.setenv("MACPULSE_HOME", str(tmp_path))
-    assert scheduler.build_plist(15)["ProgramArguments"][1:3] == ["-m", "macpulse"]
+    from macverdict import notifier
+    monkeypatch.setenv("MACVERDICT_HOME", str(tmp_path))
+    assert scheduler.build_plist(15)["ProgramArguments"][1:3] == ["-m", "macverdict"]
     monkeypatch.setattr(notifier, "is_installed", lambda: True)
     args = scheduler.build_plist(15)["ProgramArguments"]
-    assert args[0].endswith("macpulse.app/Contents/MacOS/MacpulseNotifier")
-    assert args[1] == "--run" and args[3:6] == ["-m", "macpulse", "record"]
+    assert args[0].endswith("macverdict.app/Contents/MacOS/MacverdictNotifier")
+    assert args[1] == "--run" and args[3:6] == ["-m", "macverdict", "record"]
 
 
 def test_setup_works_without_command_line_tools(monkeypatch, capsys):
-    from macpulse import cli, notifier
+    from macverdict import cli, notifier
     installed = []
     def no_tools():
         raise RuntimeError("needs Apple's Command Line Tools.")
@@ -191,12 +191,40 @@ def test_setup_works_without_command_line_tools(monkeypatch, capsys):
 
 
 def test_stable_python_uses_homebrew_opt_link(tmp_path, monkeypatch):
-    cellar = tmp_path / "Cellar/macpulse/0.1.0/libexec/bin/python"
-    opt = tmp_path / "opt/macpulse/libexec/bin/python"
+    cellar = tmp_path / "Cellar/macverdict/0.1.0/libexec/bin/python"
+    opt = tmp_path / "opt/macverdict/libexec/bin/python"
     for p in (cellar, opt):
         p.parent.mkdir(parents=True)
         p.touch()
     monkeypatch.setattr(storage.sys, "executable", str(cellar))
     assert storage.stable_python() == str(opt)
-    monkeypatch.setattr(storage.sys, "executable", "/Users/me/.local/share/uv/tools/macpulse/bin/python3")
-    assert storage.stable_python() == "/Users/me/.local/share/uv/tools/macpulse/bin/python3"
+    monkeypatch.setattr(storage.sys, "executable", "/Users/me/.local/share/uv/tools/macverdict/bin/python3")
+    assert storage.stable_python() == "/Users/me/.local/share/uv/tools/macverdict/bin/python3"
+
+
+def test_history_migrates_from_macpulse_once(tmp_path, monkeypatch):
+    monkeypatch.delenv("MACVERDICT_HOME", raising=False)
+    monkeypatch.setattr(storage.Path, "home", lambda: tmp_path)
+    old = tmp_path / "Library/Application Support/macpulse"
+    old.mkdir(parents=True)
+    (old / "history.db").write_bytes(b"old history")
+    new = storage.data_dir()
+    assert new.name == "macverdict" and (new / "history.db").read_bytes() == b"old history"
+    assert (old / "history.db").exists()                   # old folder kept as a backup
+    (new / "history.db").write_bytes(b"newer")
+    storage.data_dir()
+    assert (new / "history.db").read_bytes() == b"newer"   # never overwritten
+
+
+def test_remove_legacy_agent_and_app(tmp_path, monkeypatch):
+    monkeypatch.setattr(storage.Path, "home", lambda: tmp_path)
+    calls = []
+    monkeypatch.setattr(scheduler, "_launchctl", lambda *a: calls.append(a) or type("R", (), {"returncode": 0})())
+    agents = tmp_path / "Library/LaunchAgents"
+    agents.mkdir(parents=True)
+    (agents / "io.github.macpulse.record.plist").write_text("x")
+    app = tmp_path / "Library/Application Support/macpulse/macpulse.app/Contents"
+    app.mkdir(parents=True)
+    assert scheduler.remove_legacy() == ["background agent", "alert app"]
+    assert ("bootout", f"gui/{__import__('os').getuid()}/io.github.macpulse.record") in calls
+    assert not (agents / "io.github.macpulse.record.plist").exists()

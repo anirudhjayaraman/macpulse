@@ -1,4 +1,4 @@
-"""Run `macpulse record` on a schedule with a per-user launchd agent.
+"""Run `macverdict record` on a schedule with a per-user launchd agent.
 
 launchd is macOS's native scheduler: no cron, no daemon to keep alive, and it
 catches up after the Mac wakes from sleep.
@@ -8,13 +8,33 @@ from __future__ import annotations
 
 import os
 import plistlib
+import shutil
 import subprocess
 from pathlib import Path
 
 from . import notifier
-from .storage import data_dir, stable_python
+from .storage import LEGACY_NAME, data_dir, legacy_dir, stable_python
 
-LABEL = "io.github.macpulse.record"
+LABEL = "io.github.macverdict.record"
+
+
+LEGACY_LABEL = f"io.github.{LEGACY_NAME}.record"
+
+
+def remove_legacy() -> list[str]:
+    """Remove the background agent and alert app left by macpulse (macverdict's old name)."""
+    removed = []
+    legacy_plist = Path.home() / "Library" / "LaunchAgents" / f"{LEGACY_LABEL}.plist"
+    if _launchctl("print", f"{_domain()}/{LEGACY_LABEL}").returncode == 0:
+        _launchctl("bootout", f"{_domain()}/{LEGACY_LABEL}")
+    if legacy_plist.exists():
+        legacy_plist.unlink()
+        removed.append("background agent")
+    legacy_app = legacy_dir() / f"{LEGACY_NAME}.app"
+    if legacy_app.exists():
+        shutil.rmtree(legacy_app)
+        removed.append("alert app")
+    return removed
 
 
 def plist_path() -> Path:
@@ -26,16 +46,16 @@ def _domain() -> str:
 
 
 def build_plist(every_minutes: int, notify: bool = True) -> dict:
-    args = [stable_python(), "-m", "macpulse", "record", "--quiet"]
+    args = [stable_python(), "-m", "macverdict", "record", "--quiet"]
     if notify:
         args.append("--notify")
     if notifier.is_installed():
-        # Start through macpulse.app so Login Items shows "macpulse", not "python3".
+        # Start through macverdict.app so Login Items shows "macverdict", not "python3".
         args = [str(notifier.executable()), "--run", *args]
     logs = data_dir()
     env = {"PATH": "/usr/bin:/bin:/usr/sbin:/sbin"}
-    if os.environ.get("MACPULSE_HOME"):
-        env["MACPULSE_HOME"] = os.environ["MACPULSE_HOME"]
+    if os.environ.get("MACVERDICT_HOME"):
+        env["MACVERDICT_HOME"] = os.environ["MACVERDICT_HOME"]
     return {
         "Label": LABEL,
         "ProgramArguments": args,
@@ -104,14 +124,14 @@ def status() -> dict:
 def notify(title: str, message: str, open_report: bool = True) -> str:
     """Show a macOS notification banner and return which backend sent it.
 
-    With MacpulseNotifier installed (`macpulse notifier install`), clicking the
+    With MacverdictNotifier installed (`macverdict notifier install`), clicking the
     banner rebuilds and opens the HTML report. Otherwise it falls back to
     osascript, whose banners belong to Script Editor (clicking opens Script Editor).
     """
     if notifier.is_installed():
         on_click = notifier.report_command() if open_report else None
         if notifier.send(title, message, on_click) == "ok":
-            return "macpulse"
+            return "macverdict"
 
     def esc(s: str) -> str:
         return s.replace("\\", "\\\\").replace('"', '\\"')

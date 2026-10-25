@@ -1,7 +1,7 @@
-"""Build and drive MacpulseNotifier.app, macpulse's own notification app.
+"""Build and drive MacverdictNotifier.app, macverdict's own notification app.
 
 macOS only lets proper apps send clickable notifications. Rather than ship a
-binary, macpulse ships the Swift source and compiles it on your Mac with Apple's
+binary, macverdict ships the Swift source and compiles it on your Mac with Apple's
 Command Line Tools, then signs it locally ("ad-hoc"), which needs no Apple account.
 """
 
@@ -17,14 +17,14 @@ from pathlib import Path
 from .. import __version__
 from ..storage import data_dir, stable_python
 
-BUNDLE_ID = "io.github.macpulse.notifier"
-NAME = "MacpulseNotifier"
+BUNDLE_ID = "io.github.macverdict.notifier"
+NAME = "MacverdictNotifier"
 SOURCE = Path(__file__).with_name(f"{NAME}.swift")
 
 
-# The bundle is named "macpulse" because macOS shows that name in
+# The bundle is named "macverdict" because macOS shows that name in
 # System Settings > General > Login Items for the background agent.
-APP_NAME = "macpulse"
+APP_NAME = "macverdict"
 LEGACY_APP_NAMES = (f"{NAME}.app",)
 
 
@@ -43,8 +43,8 @@ def is_installed() -> bool:
 def info_plist() -> dict:
     return {
         "CFBundleIdentifier": BUNDLE_ID,
-        "CFBundleName": "macpulse",
-        "CFBundleDisplayName": "macpulse",
+        "CFBundleName": "macverdict",
+        "CFBundleDisplayName": "macverdict",
         "CFBundleExecutable": NAME,
         "CFBundlePackageType": "APPL",
         "CFBundleShortVersionString": __version__,
@@ -60,7 +60,7 @@ def install() -> Path:
     # /usr/bin/swiftc exists even without the tools (it pops up an installer), so ask xcode-select.
     if subprocess.run(["xcode-select", "-p"], capture_output=True).returncode != 0 or not shutil.which("swiftc"):
         raise RuntimeError("needs Apple's Command Line Tools. Run `xcode-select --install`, "
-                           "then `macpulse setup` again.")
+                           "then `macverdict setup` again.")
     app = app_path()
     with tempfile.TemporaryDirectory() as tmp:
         staged = Path(tmp) / f"{NAME}.app"
@@ -103,7 +103,7 @@ def send(title: str, message: str, on_click: list[str] | None = None, timeout: f
     """Post a notification. Returns "ok", or a reason such as "denied: ..."."""
     if not is_installed():
         return "not installed"
-    with tempfile.NamedTemporaryFile(prefix="macpulse-notify-", suffix=".txt", delete=False) as f:
+    with tempfile.NamedTemporaryFile(prefix="macverdict-notify-", suffix=".txt", delete=False) as f:
         status_file = Path(f.name)
     status_file.write_text("")
     args = ["--title", title, "--message", message, "--status-file", str(status_file)]
@@ -126,4 +126,4 @@ def send(title: str, message: str, on_click: list[str] | None = None, timeout: f
 
 
 def report_command() -> list[str]:
-    return [stable_python(), "-m", "macpulse", "report"]
+    return [stable_python(), "-m", "macverdict", "report"]
