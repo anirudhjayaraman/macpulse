@@ -204,8 +204,7 @@ def test_stable_python_uses_homebrew_opt_link(tmp_path, monkeypatch):
 
 def test_history_migrates_from_macpulse_once(tmp_path, monkeypatch):
     monkeypatch.delenv("MACVERDICT_HOME", raising=False)
-    monkeypatch.setattr(storage.Path, "home", lambda: tmp_path)
-    old = tmp_path / "Library/Application Support/macpulse"
+    old = storage.Path.home() / "Library/Application Support/macpulse"
     old.mkdir(parents=True)
     (old / "history.db").write_bytes(b"old history")
     new = storage.data_dir()
@@ -217,13 +216,12 @@ def test_history_migrates_from_macpulse_once(tmp_path, monkeypatch):
 
 
 def test_remove_legacy_agent_and_app(tmp_path, monkeypatch):
-    monkeypatch.setattr(storage.Path, "home", lambda: tmp_path)
     calls = []
     monkeypatch.setattr(scheduler, "_launchctl", lambda *a: calls.append(a) or type("R", (), {"returncode": 0})())
-    agents = tmp_path / "Library/LaunchAgents"
+    agents = storage.Path.home() / "Library/LaunchAgents"
     agents.mkdir(parents=True)
     (agents / "io.github.macpulse.record.plist").write_text("x")
-    app = tmp_path / "Library/Application Support/macpulse/macpulse.app/Contents"
+    app = storage.Path.home() / "Library/Application Support/macpulse/macpulse.app/Contents"
     app.mkdir(parents=True)
     assert scheduler.remove_legacy() == ["background agent", "alert app"]
     assert ("bootout", f"gui/{__import__('os').getuid()}/io.github.macpulse.record") in calls
