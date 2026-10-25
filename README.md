@@ -113,6 +113,9 @@ test alert (click **Allow** if macOS asks). Then run `macverdict` any time.
 
 To remove it: `macverdict uninstall`, then `brew uninstall macverdict`.
 
+Homebrew also installs zsh tab completion: type `macverdict ` and press Tab to see every command.
+If nothing appears, turn on zsh completion by adding `autoload -Uz compinit && compinit` to `~/.zshrc`.
+
 <details>
 <summary>Not using Homebrew?</summary>
 

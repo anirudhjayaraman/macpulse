@@ -226,3 +226,14 @@ def test_remove_legacy_agent_and_app(tmp_path, monkeypatch):
     assert scheduler.remove_legacy() == ["background agent", "alert app"]
     assert ("bootout", f"gui/{__import__('os').getuid()}/io.github.macpulse.record") in calls
     assert not (agents / "io.github.macpulse.record.plist").exists()
+
+
+def test_zsh_completion_covers_every_command_and_option():
+    from pathlib import Path
+    from macverdict.cli import build_parser
+    completion = (Path(__file__).parent.parent / "completions" / "_macverdict").read_text()
+    sub = next(a for a in build_parser()._actions if a.dest == "command")
+    for name, parser in sub.choices.items():
+        assert f"'{name}:" in completion, f"command {name} missing from _macverdict"
+        for opt in (o for a in parser._actions for o in a.option_strings):
+            assert opt in completion, f"{name} {opt} missing from _macverdict"

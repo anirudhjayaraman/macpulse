@@ -1,6 +1,6 @@
 """Insights on simulated history: each scenario should produce the verdict a person would expect."""
 
-import time
+from datetime import datetime
 
 from macverdict import insights, report
 from macverdict.checks import evaluate
@@ -13,7 +13,8 @@ DAY = 86400
 def make_rows(days=14, per_day=96, total_gb=16, stress=lambda i: {}, battery=lambda i, frac: {}):
     """`per_day` samples a day (96 = every 15 minutes); `stress(i)` overrides fields of sample i."""
     n = int(days * per_day)
-    start = time.time() - days * DAY
+    # Start at local midnight so sample i always falls at the same time of day, whatever the clock says.
+    start = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0).timestamp() - days * DAY
     rows = []
     for i in range(n):
         frac = i / max(1, n - 1)

@@ -1,0 +1,95 @@
+#compdef macverdict
+
+# zsh completion for macverdict. Homebrew installs this into site-functions.
+# Keep in step with build_parser() in src/macverdict/cli.py (tests check it).
+
+_macverdict() {
+  local curcontext="$curcontext" state line ret=1
+  typeset -A opt_args
+
+  local -a commands
+  commands=(
+    'check:diagnose this Mac right now (default)'
+    'insights:why your Mac was slow, RAM verdict, battery forecast, throttling'
+    'report:build an HTML report with trends and open it'
+    'history:summarise stored samples in the terminal'
+    'setup:one-step setup: background recording and alerts'
+    'uninstall:stop background recording and remove the alert app'
+    'record:take a sample and store it (used by the scheduler)'
+    'schedule:record automatically with launchd'
+    'notifier:build macverdict'\''s own notification app (clickable alerts)'
+    'notify-test:send a test notification'
+    'export:export history to CSV'
+  )
+
+  _arguments -C \
+    '(- *)'{-h,--help}'[show help and exit]' \
+    '(- *)--version[show version and exit]' \
+    '1: :->command' \
+    '*:: :->args' && ret=0
+
+  case $state in
+    command)
+      _describe -t commands 'macverdict command' commands && ret=0
+      ;;
+    args)
+      local interval='--interval[seconds to sample CPU/IO rates (default 1)]:seconds:'
+      local -a help
+      help=('(- *)'{-h,--help}'[show help and exit]')
+      case $line[1] in
+        check)
+          _arguments $help $interval \
+            '--json[print machine-readable JSON]' \
+            '--save[also store this sample in history]' && ret=0
+          ;;
+        record)
+          _arguments $help $interval \
+            '--notify[show a macOS notification on critical findings]' \
+            '--quiet[print nothing]' \
+            '--keep-days[delete samples older than this (default 90)]:days:' && ret=0
+          ;;
+        report)
+          _arguments $help $interval \
+            '--days[days of history to include (default 7)]:days:' \
+            '--out[output path (default: data folder/report.html)]:file:_files' \
+            '--no-open[do not open the report]' && ret=0
+          ;;
+        insights)
+          _arguments $help \
+            '--days[days of history to analyse (default 30)]:days:' \
+            '--json[print machine-readable JSON]' && ret=0
+          ;;
+        history)
+          _arguments $help \
+            '--days[days of history to summarise (default 7)]:days:' && ret=0
+          ;;
+        setup)
+          _arguments $help \
+            '--every[minutes between samples (default 15)]:minutes:' \
+            '--no-notify[never show alerts]' && ret=0
+          ;;
+        schedule)
+          _arguments $help \
+            '1:action:(install remove status)' \
+            '--every[minutes between samples (default 15)]:minutes:' \
+            '--no-notify[never show notifications]' && ret=0
+          ;;
+        notifier)
+          _arguments $help '1:action:(install remove status)' && ret=0
+          ;;
+        export)
+          _arguments $help \
+            '1:output CSV file:_files' \
+            '--days[days of history to export (default 90)]:days:' && ret=0
+          ;;
+        uninstall|notify-test)
+          _arguments $help && ret=0
+          ;;
+      esac
+      ;;
+  esac
+
+  return ret
+}
+
+_macverdict "$@"

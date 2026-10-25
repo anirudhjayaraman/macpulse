@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "macverdict"
-version = "0.2.0"
+version = "0.2.1"
 description = "Stop watching graphs: macverdict tells you why your Mac was slow this week and what to do about it. Slowdown blame, RAM verdict, battery forecast and MacBook Air throttling, from quiet background sampling."
 readme = "README.md"
 requires-python = ">=3.9"
