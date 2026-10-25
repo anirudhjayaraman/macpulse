@@ -16,7 +16,7 @@ weeks of history into four plain answers:
    which apps were running when it did.
 
 ```
-$ macpulse insights          # example: three weeks on an 8 GB MacBook Air
+$ macpulse insights          # illustration: three weeks on an 8 GB MacBook Air
 macpulse insights · MacBook Air · 8.0 GB RAM · last 30 days
 
 ● What's slowing you down
@@ -38,6 +38,18 @@ macpulse insights · MacBook Air · 8.0 GB RAM · last 30 days
   Your Mac slowed itself down to cool off in 6% of samples.
     · Busiest apps when it ran hot: Final Cut Pro.
 ```
+
+## See it on a real Mac
+
+A real week on a MacBook Air (Apple M5, 16 GB). `macpulse report` turns the history into a page
+like this. **[Open the full sample report](https://anirudhjayaraman.github.io/macpulse/sample-report.html)**.
+
+![macpulse insights: Chrome behind every slowdown, 16 GB is enough, battery healthy, no throttling](https://raw.githubusercontent.com/anirudhjayaraman/macpulse/main/docs/insights.png)
+
+The trends make the story visible: memory pressure (shaded) on Mon 19 and Tue 20, matching the
+swap spike, then a quiet rest of the week.
+
+![macpulse trends: a week of health score, CPU, memory with pressure shaded, swap, disk, battery](https://raw.githubusercontent.com/anirudhjayaraman/macpulse/main/docs/trends.png)
 
 Free and open source, one dependency (`psutil`), no sudo, no cloud: nothing leaves your Mac.
 Built for Apple-silicon MacBooks, works on any Mac running macOS 12+.

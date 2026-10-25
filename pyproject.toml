@@ -39,3 +39,6 @@ packages = ["src/macpulse"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.hatch.build.targets.sdist]
+exclude = ["docs"]
